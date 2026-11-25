@@ -6,6 +6,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import ru.practicum.dto.EndpointHitDto;
 import ru.practicum.dto.ViewStatsDto;
 
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -48,9 +49,9 @@ public class StatsClient {
             builder.queryParam("uris", uris.toArray());
         }
 
-        String url = builder.build()
+        URI url = builder.build()
                 .encode()
-                .toUriString();
+                .toUri();
 
         ViewStatsDto[] response = restTemplate.getForObject(
                 url,
