@@ -20,7 +20,7 @@ public class StatsClient {
     private final RestTemplate restTemplate;
     private final String serverUrl;
 
-    public StatsClient(String serverUrl) {
+    StatsClient(String serverUrl) {
         this.serverUrl = serverUrl;
         this.restTemplate = new RestTemplate();
     }
