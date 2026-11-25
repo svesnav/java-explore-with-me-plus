@@ -15,7 +15,17 @@ public interface EndpointHitRepository extends JpaRepository<EndpointHit, Long> 
             SELECT new ru.practicum.dto.ViewStatsDto(e.app, e.uri, COUNT(e))
             FROM EndpointHit e
             WHERE e.timestamp BETWEEN :start AND :end
-              AND (:uris IS NULL OR e.uri IN :uris)
+            GROUP BY e.app, e.uri
+            ORDER BY COUNT(e) DESC
+            """)
+    List<ViewStatsDto> findStats(@Param("start") LocalDateTime start,
+                                 @Param("end") LocalDateTime end);
+
+    @Query("""
+            SELECT new ru.practicum.dto.ViewStatsDto(e.app, e.uri, COUNT(e))
+            FROM EndpointHit e
+            WHERE e.timestamp BETWEEN :start AND :end
+              AND e.uri IN :uris
             GROUP BY e.app, e.uri
             ORDER BY COUNT(e) DESC
             """)
@@ -27,7 +37,17 @@ public interface EndpointHitRepository extends JpaRepository<EndpointHit, Long> 
             SELECT new ru.practicum.dto.ViewStatsDto(e.app, e.uri, COUNT(DISTINCT e.ip))
             FROM EndpointHit e
             WHERE e.timestamp BETWEEN :start AND :end
-              AND (:uris IS NULL OR e.uri IN :uris)
+            GROUP BY e.app, e.uri
+            ORDER BY COUNT(DISTINCT e.ip) DESC
+            """)
+    List<ViewStatsDto> findUniqueStats(@Param("start") LocalDateTime start,
+                                       @Param("end") LocalDateTime end);
+
+    @Query("""
+            SELECT new ru.practicum.dto.ViewStatsDto(e.app, e.uri, COUNT(DISTINCT e.ip))
+            FROM EndpointHit e
+            WHERE e.timestamp BETWEEN :start AND :end
+              AND e.uri IN :uris
             GROUP BY e.app, e.uri
             ORDER BY COUNT(DISTINCT e.ip) DESC
             """)

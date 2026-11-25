@@ -31,6 +31,9 @@ public class StatsService {
     @Transactional(readOnly = true)
     public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end,
                                        List<String> uris, boolean unique) {
+        if (uris == null || uris.isEmpty()) {
+            return unique ? repository.findUniqueStats(start, end) : repository.findStats(start, end);
+        }
         if (unique) {
             return repository.findUniqueStats(start, end, uris);
         }
