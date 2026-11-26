@@ -1,5 +1,6 @@
 package ru.practicum.ewm.event.mapper;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.practicum.ewm.category.Category;
 import ru.practicum.ewm.category.dto.CategoryDto;
@@ -8,13 +9,18 @@ import ru.practicum.ewm.event.dto.EventShortDto;
 import ru.practicum.ewm.event.dto.NewEventDto;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.model.EventState;
+import ru.practicum.ewm.request.ParticipationRequestRepository;
+import ru.practicum.ewm.request.RequestStatus;
 import ru.practicum.ewm.user.User;
 import ru.practicum.ewm.user.dto.UserShortDto;
 
 import java.time.LocalDateTime;
 
 @Component
+@RequiredArgsConstructor
 public class EventMapper {
+
+    private final ParticipationRequestRepository requestRepository;
 
     public Event toEntity(NewEventDto dto, Category category, User initiator) {
         return Event.builder()
@@ -43,6 +49,7 @@ public class EventMapper {
                 .paid(event.getPaid())
                 .eventDate(event.getEventDate())
                 .views(views)
+                .confirmedRequests(confirmedCount(event))
                 .build();
     }
 
@@ -63,6 +70,7 @@ public class EventMapper {
                 .publishedOn(event.getPublishedOn())
                 .eventDate(event.getEventDate())
                 .views(views)
+                .confirmedRequests(confirmedCount(event))
                 .build();
     }
 
@@ -72,5 +80,9 @@ public class EventMapper {
 
     private UserShortDto toUserShortDto(User user) {
         return UserShortDto.builder().id(user.getId()).name(user.getName()).build();
+    }
+
+    private Long confirmedCount(Event event) {
+        return requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
     }
 }

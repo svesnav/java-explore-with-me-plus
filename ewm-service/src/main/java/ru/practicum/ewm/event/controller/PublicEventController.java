@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.event.dto.EventFullDto;
 import ru.practicum.ewm.event.dto.EventShortDto;
 import ru.practicum.ewm.event.service.EventService;
+import ru.practicum.ewm.stats.StatsFacade;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.List;
 public class PublicEventController {
 
     private final EventService eventService;
+    private final StatsFacade statsFacade;
 
     @GetMapping
     public List<EventShortDto> search(
@@ -35,9 +37,11 @@ public class PublicEventController {
             @RequestParam(defaultValue = "false") boolean onlyAvailable,
             @RequestParam(defaultValue = "EVENT_DATE") String sort,
             @RequestParam(defaultValue = "0") @PositiveOrZero int from,
-            @RequestParam(defaultValue = "10") @Positive int size) {
+            @RequestParam(defaultValue = "10") @Positive int size,
+            HttpServletRequest request) {
         Sort sorting = sort.equals("VIEWS") ? Sort.unsorted() : Sort.by("eventDate");
         Pageable pageable = PageRequest.of(from / size, size, sorting);
+        statsFacade.hit("/events", request.getRemoteAddr());
         return eventService.searchPublic(text, categories, paid, rangeStart, rangeEnd,
                 onlyAvailable, sort, pageable);
     }
