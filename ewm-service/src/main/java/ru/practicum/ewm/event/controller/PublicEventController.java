@@ -1,11 +1,14 @@
 package ru.practicum.ewm.event.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.event.dto.EventFullDto;
 import ru.practicum.ewm.event.dto.EventShortDto;
@@ -14,6 +17,7 @@ import ru.practicum.ewm.event.service.EventService;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Validated
 @RestController
 @RequestMapping("/events")
 @RequiredArgsConstructor
@@ -30,8 +34,8 @@ public class PublicEventController {
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
             @RequestParam(defaultValue = "false") boolean onlyAvailable,
             @RequestParam(defaultValue = "EVENT_DATE") String sort,
-            @RequestParam(defaultValue = "0") int from,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "0") @PositiveOrZero int from,
+            @RequestParam(defaultValue = "10") @Positive int size) {
         Sort sorting = sort.equals("VIEWS") ? Sort.unsorted() : Sort.by("eventDate");
         Pageable pageable = PageRequest.of(from / size, size, sorting);
         return eventService.searchPublic(text, categories, paid, rangeStart, rangeEnd,

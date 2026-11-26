@@ -49,6 +49,7 @@ public class ErrorHandler {
 
     // некорректный запрос
     @ExceptionHandler({
+            BadRequestException.class,
             MethodArgumentNotValidException.class,
             ConstraintViolationException.class,
             MissingServletRequestParameterException.class,

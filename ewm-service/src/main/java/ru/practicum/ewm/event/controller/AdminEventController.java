@@ -1,5 +1,6 @@
 package ru.practicum.ewm.event.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,7 +36,7 @@ public class AdminEventController {
 
     @PatchMapping("/{eventId}")
     public EventFullDto moderate(@PathVariable Long eventId,
-                                 @RequestBody UpdateEventAdminRequest request) {
+                                 @Valid @RequestBody UpdateEventAdminRequest request) {
         return eventService.moderate(eventId, request);
     }
 }

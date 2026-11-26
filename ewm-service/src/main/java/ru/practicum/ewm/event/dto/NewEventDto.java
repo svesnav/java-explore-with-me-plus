@@ -33,6 +33,7 @@ public class NewEventDto {
     private Long category;
 
     @NotNull
+    @Future
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime eventDate;
 
