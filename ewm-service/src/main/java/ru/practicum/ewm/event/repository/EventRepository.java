@@ -12,8 +12,12 @@ import ru.practicum.ewm.event.model.EventState;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
+
+    @EntityGraph(attributePaths = {"category", "initiator"})
+    List<Event> findAllByIdInOrderByIdAsc(Set<Long> ids);
 
     @EntityGraph(attributePaths = {"category", "initiator"})
     Page<Event> findAllByInitiatorId(Long initiatorId, Pageable pageable);
