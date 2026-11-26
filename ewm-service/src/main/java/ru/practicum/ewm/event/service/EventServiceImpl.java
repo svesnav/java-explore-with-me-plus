@@ -12,6 +12,7 @@ import ru.practicum.ewm.event.mapper.EventMapper;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.model.EventState;
 import ru.practicum.ewm.event.repository.EventRepository;
+import ru.practicum.ewm.exception.BadRequestException;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
 import ru.practicum.ewm.stats.StatsFacade;
@@ -76,6 +77,9 @@ public class EventServiceImpl implements EventService {
         if (event.getState() == EventState.PUBLISHED) {
             throw new ConflictException("Published event cannot be edited");
         }
+        if (request.getEventDate() != null && request.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
+            throw new ConflictException("Event date must be at least 2 hours from now");
+        }
         applyUserUpdate(event, request);
         return mapper.toFullDto(eventRepository.save(event), 0L);
     }
@@ -85,6 +89,9 @@ public class EventServiceImpl implements EventService {
     public List<EventShortDto> searchPublic(String text, List<Long> categories, Boolean paid,
                                             LocalDateTime rangeStart, LocalDateTime rangeEnd,
                                             Boolean onlyAvailable, String sort, Pageable pageable) {
+        if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
+            throw new BadRequestException("rangeStart must not be after rangeEnd");
+        }
         Page<Event> page = eventRepository.findPublished(EventState.PUBLISHED, text, categories,
                 paid, rangeStart, rangeEnd, pageable);
         Map<String, Long> views = statsFacade.getViews(
