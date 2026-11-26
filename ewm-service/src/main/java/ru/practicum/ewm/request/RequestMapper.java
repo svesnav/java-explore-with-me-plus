@@ -1,7 +1,7 @@
 package ru.practicum.ewm.request;
 
 import lombok.experimental.UtilityClass;
-import ru.practicum.ewm.event.Event;
+import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.request.dto.ParticipationRequestDto;
 import ru.practicum.ewm.user.User;
 
