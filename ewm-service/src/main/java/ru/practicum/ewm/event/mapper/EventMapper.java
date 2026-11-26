@@ -49,6 +49,7 @@ public class EventMapper {
                 .paid(event.getPaid())
                 .eventDate(event.getEventDate())
                 .views(views)
+                .confirmedRequests(confirmedCount(event))
                 .build();
     }
 
@@ -69,6 +70,7 @@ public class EventMapper {
                 .publishedOn(event.getPublishedOn())
                 .eventDate(event.getEventDate())
                 .views(views)
+                .confirmedRequests(confirmedCount(event))
                 .build();
     }
 
