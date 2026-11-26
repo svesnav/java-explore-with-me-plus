@@ -27,4 +27,7 @@ public class EventShortDto {
     private LocalDateTime eventDate;
 
     private Long views;
+
+    @Builder.Default
+    private Long confirmedRequests = 0L;
 }
