@@ -3,14 +3,16 @@ package ru.practicum.ewm.event.repository;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.jpa.domain.Specification;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.model.EventState;
+import ru.practicum.ewm.request.ParticipationRequest;
+import ru.practicum.ewm.request.RequestStatus;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -33,12 +35,12 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
     @EntityGraph(attributePaths = {"category", "initiator"})
     Page<Event> findAll(Specification<Event> specification, Pageable pageable);
 
-    default Page<Event> findPublished(EventState state, String text, List<Long> categories,
-                                     Boolean paid, LocalDateTime rangeStart, LocalDateTime rangeEnd,
-                                     Pageable pageable) {
-        return findAll((event, query, builder) -> {
+    static Specification<Event> publishedEvents(String text, List<Long> categories, Boolean paid,
+                                                LocalDateTime rangeStart, LocalDateTime rangeEnd,
+                                                boolean onlyAvailable) {
+        return (event, query, builder) -> {
             List<Predicate> filters = new ArrayList<>();
-            filters.add(builder.equal(event.get("state"), state));
+            filters.add(builder.equal(event.get("state"), EventState.PUBLISHED));
             if (categories != null && !categories.isEmpty()) {
                 filters.add(event.get("category").get("id").in(categories));
             }
@@ -58,8 +60,22 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
                         builder.like(builder.lower(event.get("annotation")), pattern, '!'),
                         builder.like(builder.lower(event.get("description")), pattern, '!')));
             }
+            if (onlyAvailable) {
+                var confirmed = query.subquery(Long.class);
+                var request = confirmed.from(ParticipationRequest.class);
+                confirmed.select(builder.count(request)).where(
+                        builder.equal(request.get("event"), event),
+                        builder.equal(request.get("status"), RequestStatus.CONFIRMED));
+                filters.add(builder.or(
+                        builder.equal(event.get("participantLimit"), 0),
+                        builder.lt(confirmed, event.<Integer>get("participantLimit"))));
+            }
             return builder.and(filters.toArray(Predicate[]::new));
-        }, pageable);
+        };
+    }
+
+    interface EventId {
+        Long getId();
     }
 
     @EntityGraph(attributePaths = {"category", "initiator"})

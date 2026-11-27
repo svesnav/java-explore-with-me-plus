@@ -20,12 +20,19 @@ import ru.practicum.ewm.user.User;
 import ru.practicum.ewm.user.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class EventServiceImpl implements EventService {
+
+    private static final int STATS_BATCH_SIZE = 100;
 
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
@@ -89,16 +96,35 @@ public class EventServiceImpl implements EventService {
     public List<EventShortDto> searchPublic(String text, List<Long> categories, Boolean paid,
                                             LocalDateTime rangeStart, LocalDateTime rangeEnd,
                                             Boolean onlyAvailable, String sort, Pageable pageable) {
-        if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
-            throw new BadRequestException("rangeStart must not be after rangeEnd");
+        validateRange(rangeStart, rangeEnd);
+        var filters = EventRepository.publishedEvents(text, categories, paid, rangeStart, rangeEnd,
+                Boolean.TRUE.equals(onlyAvailable));
+        if (!"VIEWS".equals(sort)) {
+            Page<Event> page = eventRepository.findAll(filters, pageable);
+            Map<String, Long> views = statsFacade.getViews(
+                    page.getContent().stream().map(e -> "/events/" + e.getId()).toList()
+            );
+            return page.getContent().stream()
+                    .map(e -> mapper.toShortDto(e, views.getOrDefault("/events/" + e.getId(), 0L)))
+                    .toList();
         }
-        Page<Event> page = eventRepository.findPublished(EventState.PUBLISHED, text, categories,
-                paid, rangeStart, rangeEnd, pageable);
-        Map<String, Long> views = statsFacade.getViews(
-                page.getContent().stream().map(e -> "/events/" + e.getId()).toList()
-        );
-        return page.getContent().stream()
-                .map(e -> mapper.toShortDto(e, views.getOrDefault("/events/" + e.getId(), 0L)))
+
+        List<Long> matchingIds = eventRepository.findBy(filters, query -> query
+                .as(EventRepository.EventId.class).project("id").all()).stream()
+                .map(EventRepository.EventId::getId)
+                .toList();
+        Map<String, Long> views = getPublicViews(matchingIds);
+        List<Long> ids = matchingIds.stream()
+                .sorted(Comparator.<Long>comparingLong(id -> views.getOrDefault("/events/" + id, 0L))
+                        .reversed().thenComparingLong(Long::longValue))
+                .skip(pageable.getOffset()).limit(pageable.getPageSize()).toList();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Event> events = eventRepository.findAllByIdInOrderByIdAsc(new HashSet<>(ids)).stream()
+                .collect(Collectors.toMap(Event::getId, Function.identity()));
+        return ids.stream().filter(events::containsKey)
+                .map(id -> mapper.toShortDto(events.get(id), views.getOrDefault("/events/" + id, 0L)))
                 .toList();
     }
 
@@ -118,6 +144,7 @@ public class EventServiceImpl implements EventService {
     public List<EventFullDto> searchAdmin(List<Long> users, List<EventState> states,
                                           List<Long> categories, LocalDateTime rangeStart,
                                           LocalDateTime rangeEnd, Pageable pageable) {
+        validateRange(rangeStart, rangeEnd);
         Page<Event> page = eventRepository.findForAdmin(users, states, categories,
                 rangeStart, rangeEnd, pageable);
         Map<String, Long> views = statsFacade.getViews(
@@ -126,6 +153,23 @@ public class EventServiceImpl implements EventService {
         return page.getContent().stream()
                 .map(e -> mapper.toFullDto(e, views.getOrDefault("/events/" + e.getId(), 0L)))
                 .toList();
+    }
+
+    private void validateRange(LocalDateTime start, LocalDateTime end) {
+        if (start != null && end != null && start.isAfter(end)) {
+            throw new BadRequestException("rangeStart must not be after rangeEnd");
+        }
+    }
+
+    private Map<String, Long> getPublicViews(List<Long> ids) {
+        Map<String, Long> views = new HashMap<>();
+        for (int from = 0; from < ids.size(); from += STATS_BATCH_SIZE) {
+            List<String> uris = ids.subList(from, Math.min(from + STATS_BATCH_SIZE, ids.size())).stream()
+                    .map(id -> "/events/" + id)
+                    .toList();
+            views.putAll(statsFacade.getViews(uris));
+        }
+        return views;
     }
 
     @Override
